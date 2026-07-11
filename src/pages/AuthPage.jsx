@@ -15,7 +15,7 @@ export default function AuthPage() {
     const [modalShow, setModalShow] = useState(null);
     const handleShowSignUp = () => setModalShow("Signup");
     const handleShowLogin = () => setModalShow("Login");
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
     const auth = getAuth();
@@ -57,9 +57,44 @@ export default function AuthPage() {
             <Col sm={6}>
                 <Image src={loginImage} fluid />
             </Col>
-            <Col sm={6} className='p-4'>
-                <Button className='rounded-pill btn btn-ocean'>Sign Up</Button> 
+            <Col sm={5} className='p-4'>
+                <Button className='rounded-pill btn btn-ocean' onClick={handleShowSignUp}>Sign Up</Button> 
+                <Button className='rounded pill' variant='outline-secondary' onClick={handleShowLogin}>Log in</Button>
             </Col>
+
+            <Modal
+                show={modalShow != null}
+                onHide={handleClose}
+                centered
+            >
+                <Modal.Body>
+                    <h3 className='mb-4' style={{ fontWeight: "bold" }}>
+                        {modalShow === "SignUp" ? "Create your account" : "Log in to your account"}
+                    </h3>
+                    <Form
+                        className='d-grid gap-2 px-5'
+                        onSubmit={modalShow === "SignUp" ? handleSignUp : handleLogin}
+                    >
+                        <Form.Group className='mb-3' controlId='formBasicEmail'>
+                            <Form.Control
+                                onChange={(e) => setEmail(e.target.value)}
+                                type='email'
+                                placeholder='Enter email'
+                            />
+                        </Form.Group>
+                        <Form.Group className='mb-3' controlId='formBasicPassword'>
+                            <Form.Control
+                                onChange={(e) => setPassword(e.target.value)}
+                                type='password'
+                                placeholder='Password'
+                            />
+                        </Form.Group>
+                        <Button className='rounded-pill btn btn-ocean' type='submit'>
+                            {modalShow === "SignUp" ? "Sign up" : "Log in"}
+                        </Button>
+                    </Form>
+                </Modal.Body>
+            </Modal>
         </Row>
     );
 }
