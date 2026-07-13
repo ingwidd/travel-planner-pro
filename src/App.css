@@ -18,3 +18,47 @@
   /* Focus State (For Accessibility) */
   --bs-btn-focus-shadow-rgb: 0, 105, 148; 
 }
+
+/* Design tokens for the app — grounded in its own ERD (Trip / Todo / DiaryEntry) */
+
+@import url("https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  /* Surfaces */
+  --color-bg: #0b0d12;
+  --color-bg-soft: #10131b;
+  --color-card: #151822;
+  --color-card-soft: #191d28;
+  --color-border: #262b38;
+
+  /* Text */
+  --color-text-hi: #f3f1ea;
+  --color-text-mid: #a7afc2;
+  --color-text-low: #6b7284;
+
+  /* Accent: Trip (amber) */
+  --color-trip: #e0a23f;
+  --color-trip-tint-bg: rgba(224, 162, 63, 0.13);
+  --color-trip-tint-border: rgba(224, 162, 63, 0.33);
+
+  /* Accent: Todo (rose) */
+  --color-todo: #e0527a;
+  --color-todo-tint-bg: rgba(224, 82, 122, 0.13);
+  --color-todo-tint-border: rgba(224, 82, 122, 0.33);
+
+  /* Accent: Diary (teal) */
+  --color-diary: #3fbfb0;
+  --color-diary-tint-bg: rgba(63, 191, 176, 0.13);
+  --color-diary-tint-border: rgba(63, 191, 176, 0.33);
+
+  /* Accent: Currency (blue) */
+  --color-currency: #6e8ce0;
+  --color-currency-tint-bg: rgba(110, 140, 224, 0.13);
+  --color-currency-tint-border: rgba(110, 140, 224, 0.33);
+
+  /* Type */
+  --font-display: "Fraunces", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
