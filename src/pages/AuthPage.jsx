@@ -30,9 +30,9 @@ export default function AuthPage() {
         try {
             const res = await createUserWithEmailAndPassword(
                 auth,
-                username,
+                email,
                 password
-            )
+            );
             console.log(res.user);
         } catch (error) {
             console.error(error);
@@ -42,7 +42,7 @@ export default function AuthPage() {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            await signInWithEmailAndPassword(auth, username, password)
+            await signInWithEmailAndPassword(auth, email, password)
         } catch (error) {
             console.error("Status:", error.response?.status);
             console.error("Error data:", error.response?.data);
