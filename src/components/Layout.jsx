@@ -16,7 +16,7 @@ export default function Layout({ children }) {
 
   return (
     <>
-      <Navbar bg="light" expand="lg" className="shadow-sm mb-4">
+      <Navbar bg="light" expand="lg" className="shadow-sm">
         <Container>
           <Navbar.Brand as={Link} to="/home" className="fw-bold">
             Travel Planner
@@ -42,7 +42,7 @@ export default function Layout({ children }) {
         </Container>
       </Navbar>
 
-      <main className="mt-3">{children}</main>
+      <main>{children}</main>
     </>
   );
 }

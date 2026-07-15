@@ -36,6 +36,7 @@ export function TripDataProvider({ children }) {
             value={{
                 trips,
                 todos,
+                setTodos,
                 diaryEntries,
                 tripsLoading,
                 todosLoading,
