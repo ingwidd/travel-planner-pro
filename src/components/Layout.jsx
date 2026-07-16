@@ -19,6 +19,7 @@ export default function Layout({ children }) {
       <Navbar bg="light" expand="lg" className="shadow-sm">
         <Container>
           <Navbar.Brand as={Link} to="/home" className="fw-bold">
+            <i className="bi bi-luggage-fill"></i>
             Travel Planner
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
