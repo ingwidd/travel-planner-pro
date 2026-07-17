@@ -30,14 +30,14 @@ export default function TodoPage() {
         event.preventDefault();
 
         const newTodo = {
-            id: Date.now(),  
+            id: Date.now(),
             description: taskDescription,
             completed: isCompleted,
             createdAt: new Date().toISOString()
         };
-        
+
         setTodos([...todos, newTodo]);
-        
+
         setTaskDescription('');
         setIsCompleted(false);
         handleClose();
@@ -45,8 +45,8 @@ export default function TodoPage() {
 
     function editTodo(event) {
         event.preventDefault();
-        const updatedTodos = todos.map(todo => 
-            todo.id === editingId ? {...todo, description: taskDescription, completed: isCompleted } : todo
+        const updatedTodos = todos.map(todo =>
+            todo.id === editingId ? { ...todo, description: taskDescription, completed: isCompleted } : todo
         );
         setTodos(updatedTodos)
         handleClose();
@@ -94,7 +94,7 @@ export default function TodoPage() {
         <Container>
             <div className="mb-4 my-4">
                 <h2>My ToDos</h2>
-                
+
                 {/* Filter Controls */}
                 <div className="mb-3 mt-4">
                     <div className="mb-3">
@@ -207,14 +207,15 @@ export default function TodoPage() {
                     </p>
                 )}
             </div>
-            <Button 
-                variant="outline-secondary"
-                onClick={handleAdd}
-                className="position-fixed bottom-0 end-0 m-4 z-3 rounded-circle shadow-lg"
-                style={{ width: '55px', height: '55px', padding: '0' }}
+            <div className="d-flex justify-content-end mt-4">
+                <Button
+                    variant="outline-primary"
+                    className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+                    style={{ width: '60px', height: '60px', fontSize: '24px' }}
                 >
                     ✚
-            </Button>
+                </Button>
+            </div>
             <Modal show={showModal !== null} onHide={handleClose} centered>
                 <Modal.Header closeButton className="bg-light-subtle">
                     <Modal.Title>
@@ -223,7 +224,7 @@ export default function TodoPage() {
                         </h4>
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body className="bg-secondary-subtle">                   
+                <Modal.Body className="bg-secondary-subtle">
                     <Form
                         className="d-grid gap-2 px-5"
                         onSubmit={showModal === 'Edit' ? editTodo : addTodo}
