@@ -6,6 +6,7 @@ import TodoPage from "./pages/TodoPage";
 import { TripDataProvider } from "./contexts/TripDataContext";
 import { AuthProvider } from "./components/AuthProvider";
 import Layout from "./components/Layout";
+import TripsPage from "./pages/TripPage";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/home" element={<Layout><HomePage /></Layout>} />
+            <Route path="/trips" element={<Layout><TripsPage /></Layout>} />
             <Route path="/todo" element={<Layout><TodoPage /></Layout>} />
             <Route path="/diary" element={<Layout><DiaryPage /></Layout>} />
             <Route path="/login" element={<AuthPage />} />

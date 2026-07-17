@@ -25,6 +25,9 @@ export default function Layout({ children }) {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto">
+              <Nav.Link as={Link} to="/trips">
+                Trips
+              </Nav.Link>
               <Nav.Link as={Link} to="/todo">
                 ToDo
               </Nav.Link>
