@@ -5,9 +5,9 @@ import { useTripData } from '../contexts/TripDataContext';
 import { AuthContext } from '../components/AuthProvider';
 
 function formatDate(isoDate) {
-    if (!isoDate) return "Pending"; // Return a placeholder if date is missing
+    if (!isoDate) return "Pending";
     const d = new Date(isoDate);
-    if (isNaN(d.getTime())) return "Invalid Date"; // Check if date is valid
+    if (isNaN(d.getTime())) return "Invalid Date";
 
     return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(
         d.getFullYear()
@@ -17,38 +17,51 @@ function formatDate(isoDate) {
 function daysLeft(isoStartDate) {
     const start = new Date(isoStartDate);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
     return Math.max(0, diff);
 }
 
-function TripCard({ trip }) {
+// Added onEdit prop to handle card clicks
+function TripCard({ trip, onEdit }) {
     const remaining = daysLeft(trip.start_date);
     const isUpcoming = remaining > 0;
     const accent = isUpcoming ? "primary" : "secondary";
 
     return (
-        <div className={`card border-${accent} mb-3`}>
+        <div className={`card border-${accent} mb-3 shadow-sm`}>
             <div className="card-body d-flex justify-content-between align-items-center">
-                <div className={`text-${accent}`}>
-                    <h5 className={`card-title mb-1 ${isUpcoming ? "fw-bold" : ""}`}>{trip.name}</h5>
-                    <p className="mb-1">{trip.destination}</p>
-                    <p className="mb-1">
-                        {formatDate(trip.start_date)} — {formatDate(trip.end_date)}
-                    </p>
-                    <p className="mb-0 fw-bold">Days left: {remaining}</p>
+                {/* Clickable area for editing */}
+                <div 
+                    onClick={() => onEdit(trip)} 
+                    style={{ cursor: 'pointer', flex: 1 }}
+                    title="Click to edit or delete"
+                >
+                    <div className={`text-${accent}`}>
+                        <h5 className={`card-title mb-1 ${isUpcoming ? "fw-bold" : ""}`}>
+                            {trip.name} <i className="bi bi-pencil-square ms-1 small opacity-50"></i>
+                        </h5>
+                        <p className="mb-1 text-dark">{trip.destination}</p>
+                        <p className="mb-1 small text-muted">
+                            {formatDate(trip.start_date)} — {formatDate(trip.end_date)}
+                        </p>
+                        <p className="mb-0 fw-bold small">
+                            {remaining > 0 ? `${remaining} days left` : "Trip completed"}
+                        </p>
+                    </div>
                 </div>
 
-                <div className="d-flex gap-2">
+                <div className="d-flex gap-2 ms-3">
                     <Link
                         to={`/diary?tripId=${trip.id}`}
-                        className={`btn btn-outline-${accent}`}
+                        className={`btn btn-outline-${accent} btn-sm`}
                         aria-label="View diary"
                     >
                         <i className="bi bi-journal-bookmark-fill"></i>
                     </Link>
                     <Link
                         to={`/todo?tripId=${trip.id}`}
-                        className={`btn btn-outline-${accent}`}
+                        className={`btn btn-outline-${accent} btn-sm`}
                         aria-label="View to-dos"
                     >
                         <i className="bi bi-list-check"></i>
@@ -61,41 +74,36 @@ function TripCard({ trip }) {
 
 export default function TripsPage() {
     const { trips, fetchTrips, tripsLoading, saveTrip, updateTrip, deleteTrip } = useTripData();
-    const [name, setName] = useState('');
-    const [destination, setDestination] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-
     const { currentUser } = useContext(AuthContext);
     const userId = currentUser?.uid;
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingTrip, setEditingTrip] = useState(null);
-
     const [formData, setFormData] = useState({ name: '', destination: '', startDate: '', endDate: '' });
-
+    
+    // NEW: Filter State
     const [filter, setFilter] = useState('all');
-
-    const handleSave = async (e) => {
-        e.preventDefault();
-        try {
-            if (editingTrip) {
-                await updateTrip(editingTrip.id, formData);
-            }
-            else {
-                await saveTrip({ userId, ...formData });
-            }
-            closeModals();
-        } catch (error) {
-            alert(error.message);
-        }
-    }
 
     useEffect(() => {
         if (userId) {
             fetchTrips(userId);
         }
     }, [userId]);
+
+    // NEW: Filtering Logic
+    const filteredTrips = trips.filter(trip => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tripEndDate = new Date(trip.end_date);
+
+        if (filter === 'upcoming') {
+            return tripEndDate >= today;
+        }
+        if (filter === 'past') {
+            return tripEndDate < today;
+        }
+        return true;
+    });
 
     const handleOpenEdit = (trip) => {
         setEditingTrip(trip);
@@ -104,7 +112,22 @@ export default function TripsPage() {
             destination: trip.destination,
             startDate: trip.start_date.split('T')[0],
             endDate: trip.end_date.split('T')[0]
-        })
+        });
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingTrip) {
+                await updateTrip(editingTrip.id, formData);
+            } else {
+                await saveTrip({ userId, ...formData });
+            }
+            closeModals();
+            fetchTrips(userId);
+        } catch (error) {
+            alert(error.message);
+        }
     };
 
     const handleDelete = async () => {
@@ -112,6 +135,7 @@ export default function TripsPage() {
             try {
                 await deleteTrip(editingTrip.id);
                 closeModals();
+                fetchTrips(userId);
             } catch (error) { alert(error.message); }
         }
     };
@@ -122,63 +146,56 @@ export default function TripsPage() {
         setFormData({ name: '', destination: '', startDate: '', endDate: '' });
     };
 
-    const filteredTrips = trips.filter(trip => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tripEndDate = new Date(trip.end_date);
-
-        if (filter === 'upcoming') {
-            // Include trips that haven't ended yet
-            return tripEndDate >= today;
-        }
-        if (filter === 'past') {
-            // Include trips that are strictly in the past
-            return tripEndDate < today;
-        }
-        return true; // 'all'
-    });
-
     return (
         <div className="container py-4">
             <div className="row justify-content-center">
                 <div className="col-12 col-md-8 col-lg-6">
-                    <h1 className="mb-4">Trips</h1>
+                    
+                    {/* Header with Title and Filter */}
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h1 className="mb-0">Trips</h1>
+                        <Form.Select 
+                            size="sm" 
+                            style={{ width: '130px' }}
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                        >
+                            <option value="all">All Trips</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="past">Past</option>
+                        </Form.Select>
+                    </div>
 
                     {tripsLoading ? (
-                        <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>
-                    ) : trips.map((trip) => (
-                        <div key={trip.id} className={`card border-${daysLeft(trip.start_date) > 0 ? 'primary' : 'secondary'} mb-3 shadow-sm`}>
-                            <div className="card-body d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5
-                                        className="card-title mb-1 text-primary"
-                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                                        onClick={() => handleOpenEdit(trip)}
-                                    >
-                                        {trip.name}
-                                    </h5>
-                                    <p className="mb-1">{trip.destination}</p>
-                                    <p className="mb-0 small text-muted">{formatDate(trip.start_date)} — {formatDate(trip.end_date)}</p>
-                                </div>
-                                <div className="d-flex gap-2">
-                                    <Link to={`/diary?tripId=${trip.id}`} className="btn btn-outline-primary btn-sm"><i className="bi bi-journal-bookmark-fill"></i></Link>
-                                    <Link to={`/todo?tripId=${trip.id}`} className="btn btn-outline-primary btn-sm"><i className="bi bi-list-check"></i></Link>
-                                </div>
-                            </div>
+                        <div className="text-center py-5">
+                            <Spinner animation="border" variant="primary" />
                         </div>
-                    ))}
+                    ) : filteredTrips.length > 0 ? (
+                        filteredTrips.map((trip) => (
+                            <TripCard 
+                                key={trip.id} 
+                                trip={trip} 
+                                onEdit={handleOpenEdit} 
+                            />
+                        ))
+                    ) : (
+                        <div className="text-center py-5 border rounded bg-light">
+                            <p className="text-muted">No {filter !== 'all' ? filter : ''} trips found. Start by adding one!</p>
+                        </div>
+                    )}
 
                     <div className="d-flex justify-content-end mt-4">
                         <Button
                             onClick={() => setShowAddModal(true)}
                             variant="outline-primary"
                             className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center"
-                            style={{ width: '60px', height: '60px', fontSize: '24px' }}
+                            style={{ width: '60px', height: '60px', fontSize: '24px', zIndex: 1000 }}
                         >
                             ✚
                         </Button>
                     </div>
 
+                    {/* Shared Modal for Add and Edit */}
                     <Modal show={showAddModal || editingTrip !== null} onHide={closeModals} centered>
                         <Form onSubmit={handleSave}>
                             <Modal.Header closeButton>
@@ -187,15 +204,45 @@ export default function TripsPage() {
                             <Modal.Body>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Trip Name</Form.Label>
-                                    <Form.Control type='text' value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                                    <Form.Control 
+                                        type='text' 
+                                        value={formData.name} 
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                                        required 
+                                    />
                                 </Form.Group>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Destination</Form.Label>
-                                    <Form.Control type="text" value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} required />
+                                    <Form.Control 
+                                        type="text" 
+                                        value={formData.destination} 
+                                        onChange={(e) => setFormData({ ...formData, destination: e.target.value })} 
+                                        required 
+                                    />
                                 </Form.Group>
                                 <Row>
-                                    <Col><Form.Label>Start</Form.Label><Form.Control type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} required /></Col>
-                                    <Col><Form.Label>End</Form.Label><Form.Control type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} required /></Col>
+                                    <Col md={6}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Start Date</Form.Label>
+                                            <Form.Control 
+                                                type="date" 
+                                                value={formData.startDate} 
+                                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
+                                                required 
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>End Date</Form.Label>
+                                            <Form.Control 
+                                                type="date" 
+                                                value={formData.endDate} 
+                                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
+                                                required 
+                                            />
+                                        </Form.Group>
+                                    </Col>
                                 </Row>
                             </Modal.Body>
                             <Modal.Footer className="d-flex justify-content-between">
