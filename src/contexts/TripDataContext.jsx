@@ -66,19 +66,28 @@ export function TripDataProvider({ children }) {
         return result;
     }
 
-    const fetchDiaryEntriesByUser = async (tripId) => {
+    // TripDataContext.jsx
+
+    const fetchDiaryEntriesByUser = async (tripId, userId) => {
         try {
             setEntriesLoading(true);
-            const response = await fetch(`${BASE_URL}/diary-entries?tripId=${tripId}`);
+
+            // Build URL parameters cleanly
+            const params = new URLSearchParams();
+            if (tripId && tripId !== 'null') params.append('tripId', tripId);
+            if (userId) params.append('userId', userId);
+
+            const response = await fetch(`${BASE_URL}/diary-entries?${params.toString()}`);
             const result = await response.json();
 
             if (!response.ok) {
                 throw new Error(result.error || "Error fetching diary entries");
             }
 
-            setDiaryEntries(result.data);
+            setDiaryEntries(result.data || []);
         } catch (error) {
             console.error("Diary Fetch Error: ", error.message);
+            setDiaryEntries([]); // Clear entries on error to prevent stale data
         } finally {
             setEntriesLoading(false);
         }

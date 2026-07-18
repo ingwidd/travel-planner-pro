@@ -1,5 +1,5 @@
 import { Container, Card, Modal, Form, Button, Row, Col } from "react-bootstrap";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useTripData } from "../contexts/TripDataContext";
 import { AuthContext } from "../components/AuthProvider";
 import { useSearchParams } from "react-router-dom";
@@ -7,6 +7,9 @@ import { useSearchParams } from "react-router-dom";
 export default function DiaryPage() {
     const [searchParams] = useSearchParams();
     const tripId = searchParams.get("tripId");
+
+    const { currentUser } = useContext(AuthContext);
+    const userId = currentUser?.uid;
 
     const [showModal, setShowModal] = useState(null);
     const [caption, setCaption] = useState('');
@@ -16,8 +19,10 @@ export default function DiaryPage() {
 
     // 1. Fetch the data when the component loads
     useEffect(() => {
-        fetchDiaryEntriesByUser(tripId);
-    }, [tripId]);
+        if (userId) {
+            fetchDiaryEntriesByUser(tripId, userId);
+        }
+    }, [tripId, userId]);
 
     const handleClose = () => setShowModal(null);
     const handleAdd = () => setShowModal('Add');
@@ -82,7 +87,7 @@ export default function DiaryPage() {
             {tripId && (
                 <Button
                     onClick={handleAdd}
-                    variant="primary"
+                    variant="outline-primary"
                     className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg"
                     style={{ width: '60px', height: '60px', fontSize: '24px' }}
                 >✚</Button>
