@@ -1,15 +1,24 @@
-import { useState } from "react";
-import { Container, Button, Modal, Form, Table, ButtonGroup } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Container, Button, Modal, Form, Table, ButtonGroup, Spinner } from "react-bootstrap";
 import { useTripData } from "../contexts/TripDataContext";
+import { useSearchParams } from "react-router-dom";
 
 export default function TodoPage() {
+    const [searchParams] = useSearchParams();
+    const tripId = searchParams.get("tripId");
+
     const [showModal, setShowModal] = useState(null);
     const [taskDescription, setTaskDescription] = useState('');
     const [isCompleted, setIsCompleted] = useState(false);
-    const { todos, setTodos } = useTripData();
+
+    const { todos, setTodos, fetchTodosByUser, saveTodo, updateTodo, deleteTodo, todosLoading } = useTripData();
     const [editingId, setEditingId] = useState(null);
     const [statusFilter, setStatusFilter] = useState('All');
     const [dateFilter, setDateFilter] = useState('All');
+
+    useEffect(() => {
+        fetchTodosByUser(tripId);
+    }, [tripId]);
 
     const handleClose = () => {
         setShowModal(null);
@@ -17,240 +26,125 @@ export default function TodoPage() {
         setIsCompleted(false);
         setEditingId(null);
     };
-    const handleAdd = () => setShowModal('Add');
 
-    const handleEdit = (todo) => {
+    const handleShowEdit = (todo) => {
         setEditingId(todo.id);
-        setTaskDescription(todo.description);
-        setIsCompleted(todo.completed);
+        setTaskDescription(todo.task_description);
+        setIsCompleted(todo.is_completed);
         setShowModal('Edit');
     };
 
-    function addTodo(event) {
-        event.preventDefault();
-
-        const newTodo = {
-            id: Date.now(),
-            description: taskDescription,
-            completed: isCompleted,
-            createdAt: new Date().toISOString()
-        };
-
-        setTodos([...todos, newTodo]);
-
-        setTaskDescription('');
-        setIsCompleted(false);
-        handleClose();
-    }
-
-    function editTodo(event) {
-        event.preventDefault();
-        const updatedTodos = todos.map(todo =>
-            todo.id === editingId ? { ...todo, description: taskDescription, completed: isCompleted } : todo
-        );
-        setTodos(updatedTodos)
-        handleClose();
-    }
-
-    function deleteTodo(id) {
-        setTodos(todos.filter(todo => todo.id !== id));
-    }
-
-    function getFilteredTodos() {
-        let filtered = todos;
-
-        // Filter by status
-        if (statusFilter === 'Done') {
-            filtered = filtered.filter(todo => todo.completed);
-        } else if (statusFilter === 'Pending') {
-            filtered = filtered.filter(todo => !todo.completed);
-        }
-
-        // Filter by date
-        if (dateFilter !== 'All') {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayStart = today.toISOString();
-
-            if (dateFilter === 'Today') {
-                filtered = filtered.filter(todo => todo.createdAt >= todayStart);
-            } else if (dateFilter === 'This Week') {
-                const weekAgo = new Date(today);
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                filtered = filtered.filter(todo => new Date(todo.createdAt) >= weekAgo);
-            } else if (dateFilter === 'This Month') {
-                const monthAgo = new Date(today);
-                monthAgo.setMonth(monthAgo.getMonth() - 1);
-                filtered = filtered.filter(todo => new Date(todo.createdAt) >= monthAgo);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (editingId) {
+                await updateTodo(editingId, {
+                    task_description: taskDescription,
+                    is_completed: isCompleted
+                });
+            } else {
+                await saveTodo({
+                    tripId,
+                    task_description: taskDescription,
+                    is_completed: isCompleted
+                });
             }
+            handleClose();
+            fetchTodosByUser(tripId);
+        } catch (error) { alert(error.message); }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Delete this task?")) {
+            await deleteTodo(id);
+            fetchTodosByUser(tripId);
         }
-
-        return filtered;
-    }
-
-    const filteredTodos = getFilteredTodos();
+    };
 
     return (
-        <Container>
-            <div className="mb-4 my-4">
-                <h2>My ToDos</h2>
+        <Container className="py-4">
+            <h2>{tripId ? "Trip Tasks" : "All Tasks"}</h2>
 
-                {/* Filter Controls */}
-                <div className="mb-3 mt-4">
-                    <div className="mb-3">
-                        <label className="fw-bold me-2">Status:</label>
-                        <ButtonGroup>
-                            <Button
-                                variant={statusFilter === 'All' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setStatusFilter('All')}
-                            >
-                                All
-                            </Button>
-                            <Button
-                                variant={statusFilter === 'Pending' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setStatusFilter('Pending')}
-                            >
-                                Pending
-                            </Button>
-                            <Button
-                                variant={statusFilter === 'Done' ? 'success' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setStatusFilter('Done')}
-                            >
-                                Done
-                            </Button>
-                        </ButtonGroup>
-                    </div>
-                    <div>
-                        <label className="fw-bold me-2">Date:</label>
-                        <ButtonGroup>
-                            <Button
-                                variant={dateFilter === 'All' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setDateFilter('All')}
-                            >
-                                All
-                            </Button>
-                            <Button
-                                variant={dateFilter === 'Today' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setDateFilter('Today')}
-                            >
-                                Today
-                            </Button>
-                            <Button
-                                variant={dateFilter === 'This Week' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setDateFilter('This Week')}
-                            >
-                                This Week
-                            </Button>
-                            <Button
-                                variant={dateFilter === 'This Month' ? 'secondary' : 'outline-secondary'}
-                                size="sm"
-                                onClick={() => setDateFilter('This Month')}
-                            >
-                                This Month
-                            </Button>
-                        </ButtonGroup>
-                    </div>
-                </div>
-
-                {filteredTodos.length > 0 ? (
-                    <Table hover responsive className="mt-3">
-                        <thead className="table-light">
-                            <tr>
-                                <th>Task</th>
-                                <th style={{ width: '120px' }}>Status</th>
-                                <th style={{ width: '100px' }}>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTodos.map((todo) => (
-                                <tr
-                                    key={todo.id}
-                                    onClick={() => handleEdit(todo)}
-                                    style={{ cursor: 'pointer' }}
-                                    className={todo.completed ? 'table-success' : ''}
-                                >
-                                    <td>
-                                        <span>
-                                            {todo.description}
-                                        </span>
+            {todosLoading ? (
+                <div className="text-center py-5"><Spinner animation="border" /></div>
+            ) : (
+                <Table hover responsive className="mt-4 shadow-sm bg-white rounded">
+                    <thead>
+                        <tr>
+                            <th>Task Description</th>
+                            <th>Status</th>
+                            <th className="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {todos && todos.length > 0 ? (
+                            todos.map((todo) => (
+                                <tr key={todo.id} onClick={() => handleShowEdit(todo)} style={{ cursor: 'pointer' }}>
+                                    <td className={todo.is_completed ? 'text-decoration-line-through text-muted' : ''}>
+                                        {todo.task_description}
                                     </td>
                                     <td>
-                                        <span className={`badge ${todo.completed ? 'bg-success' : 'bg-secondary'}`}>
-                                            {todo.completed ? 'Done' : 'Pending'}
+                                        <span className={`badge ${todo.is_completed ? 'bg-success' : 'bg-secondary'}`}>
+                                            {todo.is_completed ? 'Done' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td className="text-end">
                                         <Button
-                                            variant="danger"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteTodo(todo.id);
-                                            }}
+                                            variant="link"
+                                            className="text-danger p-0"
+                                            onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id).then(() => fetchTodosByUser(tripId)); }}
                                         >
                                             <i className="bi bi-trash"></i>
                                         </Button>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                ) : (
-                    <p className="text-muted mt-3">
-                        {todos.length === 0 ? 'No todos yet. Click the ✚ button to add one!' : 'No todos match your filters.'}
-                    </p>
-                )}
-            </div>
-            <div className="d-flex justify-content-end mt-4">
+                            ))
+                        ) : (
+                            <tr><td colSpan="3" className="text-center text-muted py-4">No tasks found.</td></tr>
+                        )}
+                    </tbody>
+                </Table>
+            )}
+
+            {tripId && (
                 <Button
+                    onClick={() => setShowModal('Add')}
                     variant="outline-primary"
                     className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center"
-                    style={{ width: '60px', height: '60px', fontSize: '24px' }}
+                    style={{ width: '60px', height: '60px', fontSize: '24px', zIndex: 1050 }}
                 >
                     ✚
                 </Button>
-            </div>
+            )}
+
             <Modal show={showModal !== null} onHide={handleClose} centered>
-                <Modal.Header closeButton className="bg-light-subtle">
-                    <Modal.Title>
-                        <h4 style={{ fontWeight: 'bold' }}>
-                            {showModal === 'Edit' ? 'Edit Task' : "What's next?"}
-                        </h4>
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="bg-secondary-subtle">
-                    <Form
-                        className="d-grid gap-2 px-5"
-                        onSubmit={showModal === 'Edit' ? editTodo : addTodo}
-                    >
-                        <Form.Group className="mb-3" controlId="taskDescription">
+                <Form onSubmit={handleSubmit}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>{editingId ? "Edit Task" : "New Task"}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form.Group className="mb-3">
+                            <Form.Label>What needs to be done?</Form.Label>
                             <Form.Control
-                                onChange={(e) => setTaskDescription(e.target.value)}
-                                value={taskDescription}
                                 as="textarea"
-                                rows={2}
+                                rows={3}
+                                value={taskDescription}
+                                onChange={(e) => setTaskDescription(e.target.value)}
                                 required
                             />
                         </Form.Group>
                         <Form.Check
                             type="checkbox"
-                            id="isCompleted"
-                            label="Mission accomplished 😉"
+                            label="Mark as completed"
                             checked={isCompleted}
                             onChange={(e) => setIsCompleted(e.target.checked)}
-                            className="mb-3"
                         />
-                        <Button className="rounded-pill btn btn-ocean" type="submit">
-                            {showModal === 'Edit' ? 'Update' : 'Submit'}
-                        </Button>
-                    </Form>
-                </Modal.Body>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+                        <Button variant="primary" type="submit">Save Task</Button>
+                    </Modal.Footer>
+                </Form>
             </Modal>
         </Container>
     );

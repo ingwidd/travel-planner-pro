@@ -32,8 +32,8 @@ export function TripDataProvider({ children }) {
             setTrips(result.data || []);
         } catch (error) {
             console.error("Fetch trips error: ", error);
-        } finally { 
-            setTripsLoading(false); 
+        } finally {
+            setTripsLoading(false);
         }
     }
 
@@ -125,26 +125,30 @@ export function TripDataProvider({ children }) {
     }
 
     const fetchTodosByUser = async (tripId) => {
-        const url = tripId ? `/todos?tripId=${tripId}` : "/todos";
+        const url = tripId
+            ? `${BASE_URL}/todos?tripId=${tripId}`
+            : `${BASE_URL}/todos`;
+
         try {
             setTodosLoading(true);
             const response = await fetch(url);
+            const result = await response.json(); // Wait for result
 
             if (!response.ok) {
-                throw new Error("Error fetching todos");
+                throw new Error(result.error || "Error fetching todos");
             }
 
-            const data = await response.json();
-            setTodos(data);
+            // result.data contains the array from your index.js
+            setTodos(result.data || []);
         } catch (error) {
-            console.error(error);
+            console.error("Todo Fetch Error:", error);
         } finally {
             setTodosLoading(false);
         }
     }
 
     async function saveTodo(todo) {
-        const response = await fetch('/todos', {
+        const response = await fetch(`${BASE_URL}/todos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(todo),
