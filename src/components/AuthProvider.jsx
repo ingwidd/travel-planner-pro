@@ -8,7 +8,25 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        return auth.onAuthStateChanged((user) => {
+        return auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                try {
+                    const response = await fetch('http://localhost:3000/sync-user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            email: user.email,
+                        })
+                    });
+
+                    if (!response.ok) throw new Error("Backend sync failed");
+
+                    console.log("User successfully synced to Postgres");
+                } catch (err) {
+                    console.error("Sync error:", err);
+                }
+            }
             setCurrentUser(user);
             setLoading(false);
         });

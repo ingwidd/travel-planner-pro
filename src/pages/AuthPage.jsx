@@ -27,8 +27,10 @@ export default function AuthPage() {
         e.preventDefault();
         try {
             const res = await createUserWithEmailAndPassword(auth, email, password);
+            alert("Sign up successful! You are now logged in.");
             console.log(res.user);
         } catch (error) {
+            alert("Sign up failed.")
             console.error(error);
         }
     };
@@ -38,6 +40,7 @@ export default function AuthPage() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
+            alert("Login failed: Check your email and password.");
             console.error('Status:', error.response?.status);
             console.error('Error data:', error.response?.data);
             console.error('Full error:', error);
