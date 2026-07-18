@@ -1,4 +1,6 @@
-import { useState, useContext, createContext } from 'react';
+import { useState, useContext, createContext, useCallback } from 'react';
+import { storage } from '../firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 const TripDataContext = createContext(null);
 
@@ -11,26 +13,35 @@ export function TripDataProvider({ children }) {
     const [entriesLoading, setEntriesLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const BASE_URL = "http://localhost:3000";
+
+    const uploadFile = useCallback(async (file) => {
+        const storageRef = ref(storage, `diaryEntries/${file.name}`);
+        const response = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(response.ref);
+        return url;
+    }, []);
+
     async function fetchTrips(userId) {
-        const url = userId ? `/trips?userId=${userId}` : "/trips";
-        const response = await fetch(url);
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to fetch trips");
-        return result.data;
+        try {
+            const response = await fetch(`${BASE_URL}/trips?userId=${userId}`);
+            const result = await response.json();
+
+            if (!response.ok) throw new Error(result.error || "Failed to fetch trips");
+
+            setTrips(result.data || []);
+        } catch (error) {
+            console.error("Fetch trips error: ", error);
+        } finally { 
+            setTripsLoading(false); 
+        }
     }
- 
-    async function fetchTripsByUserId(tripId) {
-        const response = await fetch(`/trips/${tripId}`);
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to fetch trip");
-        return result.data;
-    }
- 
-    async function saveTrip(trip) {
-        const response = await fetch("/trips", {
+
+    async function saveTrip(tripData) {
+        const response = await fetch(`${BASE_URL}/trips`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(trip), // { userId, name, destination, startDate, endDate }
+            body: JSON.stringify(tripData), // { userId, name, destination, startDate, endDate }
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to create trip");
@@ -38,7 +49,7 @@ export function TripDataProvider({ children }) {
     }
 
     async function updateTrip(tripId, trip) {
-        const response = await fetch(`/trips/${tripId}`, {
+        const response = await fetch(`${BASE_URL}/trips/${tripId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(trip), // { name, destination, startDate, endDate }
@@ -47,9 +58,9 @@ export function TripDataProvider({ children }) {
         if (!response.ok) throw new Error(result.error || "Failed to update trip");
         return result.data;
     }
- 
+
     async function deleteTrip(tripId) {
-        const response = await fetch(`/trips/${tripId}`, { method: "DELETE" });
+        const response = await fetch(`${BASE_URL}/trips/${tripId}`, { method: "DELETE" });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to delete trip");
         return result;
@@ -58,23 +69,23 @@ export function TripDataProvider({ children }) {
     const fetchDiaryEntriesByUser = async (tripId) => {
         try {
             setEntriesLoading(true);
-            const response = await fetch(`/diary-entries?tripId=${tripId}`);
+            const response = await fetch(`${BASE_URL}/diary-entries?tripId=${tripId}`);
+            const result = await response.json();
 
             if (!response.ok) {
-                throw new Error("Error fetching diary entries");
+                throw new Error(result.error || "Error fetching diary entries");
             }
 
-            const data = await response.json();
-            setDiaryEntries(data);
+            setDiaryEntries(result.data);
         } catch (error) {
-            console.error(error);
+            console.error("Diary Fetch Error: ", error.message);
         } finally {
             setEntriesLoading(false);
         }
-    };  
+    };
 
-    async function saveDiaryEntry(entry) {
-        const response = await fetch("/diary-entries", {
+    async function createDiaryEntry(entry) {
+        const response = await fetch(`${BASE_URL}/diary-entries`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(entry), // { tripId, caption, photoUrl }
@@ -82,6 +93,17 @@ export function TripDataProvider({ children }) {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to create diary entry");
         return result.data;
+    }
+
+    async function saveDiaryEntry({ tripId, caption, file }) {
+        let photoUrl = null;
+        if (file) {
+            photoUrl = await uploadFile(file);
+        }
+
+        if (!photoUrl) throw new Error("A photo is required to create a diary entry");
+
+        return createDiaryEntry({ tripId, caption, photoUrl });
     }
 
     async function updateDiaryEntry(entryId, entry) {
@@ -101,7 +123,7 @@ export function TripDataProvider({ children }) {
         if (!response.ok) throw new Error(result.error || "Failed to delete diary entry");
         return result;
     }
-    
+
     const fetchTodosByUser = async (tripId) => {
         const url = tripId ? `/todos?tripId=${tripId}` : "/todos";
         try {
@@ -142,7 +164,7 @@ export function TripDataProvider({ children }) {
         if (!response.ok) throw new Error(result.error || "Failed to update todo");
         return result.data;
     }
- 
+
     async function deleteTodo(todoId) {
         const response = await fetch(`/todos/${todoId}`, { method: "DELETE" });
         const result = await response.json();
@@ -157,7 +179,6 @@ export function TripDataProvider({ children }) {
                 todos,
                 setTodos,
                 fetchTrips,
-                fetchTripsByUserId,
                 saveTodo,
                 updateTodo,
                 deleteTodo,
@@ -174,7 +195,7 @@ export function TripDataProvider({ children }) {
                 todosLoading,
                 entriesLoading,
                 error
-            }}    
+            }}
         >
             {children}
         </TripDataContext.Provider>

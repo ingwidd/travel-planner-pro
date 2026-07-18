@@ -1,13 +1,16 @@
 import { Container, Card, Modal, Form, Button, Row, Col } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { useTripData } from "../contexts/TripDataContext";
+import { AuthContext } from "../components/AuthProvider";
+import { useSearchParams } from "react-router-dom";
 
 export default function DiaryPage() {
+    const [searchParams] = useSearchParams();
+    const tripId = searchParams.get("tripId");
+
     const [showModal, setShowModal] = useState(null);
     const [caption, setCaption] = useState('');
     const [file, setFile] = useState(null);
-
-    const tripId = '804bc100-8ba5-4f0b-9d8f-5175416c7f74';
 
     const { diaryEntries, fetchDiaryEntriesByUser, saveDiaryEntry } = useTripData();
 
@@ -36,7 +39,7 @@ export default function DiaryPage() {
 
     return (
         <Container className="py-4">
-            <h2 className="mb-4">My Diary</h2>
+            <h2 className="mb-4">{tripId ? "Trip Diary" : "My Diary"}</h2>
 
             {/* 2. Use Row and Col for the grid */}
             <Row>
@@ -57,7 +60,6 @@ export default function DiaryPage() {
                                 </Card.Body>
                                 <Card.Footer className="bg-white border-0 d-flex justify-content-between align-items-center">
                                     <small className="text-muted">
-                                        {/* Note: date_created from DB */}
                                         {new Date(entry.date_created).toLocaleDateString()}
                                     </small>
                                     <div>
@@ -77,46 +79,27 @@ export default function DiaryPage() {
                 )}
             </Row>
 
-            <div className="d-flex justify-content-end mt-4">
+            {tripId && (
                 <Button
-                    variant="outline-primary"
-                    className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+                    onClick={handleAdd}
+                    variant="primary"
+                    className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg"
                     style={{ width: '60px', height: '60px', fontSize: '24px' }}
-                >
-                    ✚
-                </Button>
-            </div>
+                >✚</Button>
+            )}
 
-            {/* Modal for adding Entry */}
             <Modal show={showModal !== null} onHide={handleClose} centered>
                 <Form onSubmit={handleSave}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>Add Diary Entry</Modal.Title>
-                    </Modal.Header>
+                    <Modal.Header closeButton><Modal.Title>Add Diary Entry</Modal.Title></Modal.Header>
                     <Modal.Body>
                         <Form.Group className="mb-3">
-                            <Form.Label>Caption</Form.Label>
-                            <Form.Control
-                                as="textarea"
-                                rows={3}
-                                value={caption}
-                                onChange={(e) => setCaption(e.target.value)}
-                                placeholder="What happened on this trip?"
-                                required
-                            />
+                            <Form.Control as="textarea" rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add a caption..." required />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Upload Photo</Form.Label>
-                            <Form.Control
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => setFile(e.target.files[0])}
-                                required
-                            />
+                            <Form.Control type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required />
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>Cancel</Button>
                         <Button variant="primary" type="submit">Save Entry</Button>
                     </Modal.Footer>
                 </Form>
