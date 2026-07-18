@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Container, Button, Modal, Form, Table, ButtonGroup, Spinner } from "react-bootstrap";
+import { Container, Button, Modal, Form, Table, Spinner } from "react-bootstrap";
 import { useTripData } from "../contexts/TripDataContext";
 import { useSearchParams } from "react-router-dom";
 
@@ -11,10 +11,11 @@ export default function TodoPage() {
     const [taskDescription, setTaskDescription] = useState('');
     const [isCompleted, setIsCompleted] = useState(false);
 
-    const { todos, setTodos, fetchTodosByUser, saveTodo, updateTodo, deleteTodo, todosLoading } = useTripData();
+    const { todos, fetchTodosByUser, saveTodo, updateTodo, deleteTodo, todosLoading } = useTripData();
     const [editingId, setEditingId] = useState(null);
+    
+    // Status Filter State
     const [statusFilter, setStatusFilter] = useState('All');
-    const [dateFilter, setDateFilter] = useState('All');
 
     useEffect(() => {
         fetchTodosByUser(tripId);
@@ -61,9 +62,29 @@ export default function TodoPage() {
         }
     };
 
+    // Filter Logic
+    const filteredTodos = todos ? todos.filter((todo) => {
+        if (statusFilter === 'Pending') return !todo.is_completed;
+        if (statusFilter === 'Done') return todo.is_completed;
+        return true; // 'All'
+    }) : [];
+
     return (
         <Container className="py-4">
-            <h2>{tripId ? "Trip Tasks" : "All Tasks"}</h2>
+            {/* Header with Title and Filter Dropdown */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="mb-0">{tripId ? "Trip Tasks" : "All Tasks"}</h2>
+                
+                <Form.Select 
+                    style={{ width: '150px' }}
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                    <option value="All">All Tasks</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Done">Done</option>
+                </Form.Select>
+            </div>
 
             {todosLoading ? (
                 <div className="text-center py-5"><Spinner animation="border" /></div>
@@ -77,8 +98,8 @@ export default function TodoPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {todos && todos.length > 0 ? (
-                            todos.map((todo) => (
+                        {filteredTodos && filteredTodos.length > 0 ? (
+                            filteredTodos.map((todo) => (
                                 <tr key={todo.id} onClick={() => handleShowEdit(todo)} style={{ cursor: 'pointer' }}>
                                     <td className={todo.is_completed ? 'text-decoration-line-through text-muted' : ''}>
                                         {todo.task_description}
@@ -91,8 +112,8 @@ export default function TodoPage() {
                                     <td className="text-end">
                                         <Button
                                             variant="link"
-                                            className="text-danger p-0"
-                                            onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id).then(() => fetchTodosByUser(tripId)); }}
+                                            className="text-danger p-0 ms-2"
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(todo.id); }}
                                         >
                                             <i className="bi bi-trash"></i>
                                         </Button>
@@ -100,7 +121,13 @@ export default function TodoPage() {
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan="3" className="text-center text-muted py-4">No tasks found.</td></tr>
+                            <tr>
+                                <td colSpan="3" className="text-center text-muted py-4">
+                                    {statusFilter === 'All' 
+                                        ? 'No tasks found.' 
+                                        : `No ${statusFilter.toLowerCase()} tasks found.`}
+                                </td>
+                            </tr>
                         )}
                     </tbody>
                 </Table>
@@ -109,7 +136,7 @@ export default function TodoPage() {
             {tripId && (
                 <Button
                     onClick={() => setShowModal('Add')}
-                    variant="outline-primary"
+                    variant="primary"
                     className="position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg d-flex align-items-center justify-content-center"
                     style={{ width: '60px', height: '60px', fontSize: '24px', zIndex: 1050 }}
                 >
