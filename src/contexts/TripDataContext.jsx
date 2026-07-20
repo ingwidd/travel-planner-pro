@@ -133,24 +133,26 @@ export function TripDataProvider({ children }) {
         return result;
     }
 
-    const fetchTodosByUser = async (tripId) => {
-        const url = tripId
-            ? `${BASE_URL}/todos?tripId=${tripId}`
-            : `${BASE_URL}/todos`;
-
+    const fetchTodosByUser = async (tripId, userId) => {
         try {
             setTodosLoading(true);
-            const response = await fetch(url);
-            const result = await response.json(); // Wait for result
+
+            // Build URL with search parameters
+            const params = new URLSearchParams();
+            if (userId) params.append('userId', userId);
+            if (tripId && tripId !== 'null') params.append('tripId', tripId);
+
+            const response = await fetch(`${BASE_URL}/todos?${params.toString()}`);
+            const result = await response.json();
 
             if (!response.ok) {
                 throw new Error(result.error || "Error fetching todos");
             }
 
-            // result.data contains the array from your index.js
             setTodos(result.data || []);
         } catch (error) {
             console.error("Todo Fetch Error:", error);
+            setTodos([]); // Clear state on error
         } finally {
             setTodosLoading(false);
         }

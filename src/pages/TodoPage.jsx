@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Container, Button, Modal, Form, Table, Spinner } from "react-bootstrap";
 import { useTripData } from "../contexts/TripDataContext";
 import { useSearchParams } from "react-router-dom";
+import { AuthContext } from "../components/AuthProvider";
 
 export default function TodoPage() {
     const [searchParams] = useSearchParams();
     const tripId = searchParams.get("tripId");
+    const { currentUser } = useContext(AuthContext);
+    const userId = currentUser.uid;
 
     const [showModal, setShowModal] = useState(null);
     const [taskDescription, setTaskDescription] = useState('');
@@ -18,8 +21,8 @@ export default function TodoPage() {
     const [statusFilter, setStatusFilter] = useState('All');
 
     useEffect(() => {
-        fetchTodosByUser(tripId);
-    }, [tripId]);
+        fetchTodosByUser(tripId, userId);
+    }, [tripId, currentUser]);
 
     const handleClose = () => {
         setShowModal(null);
@@ -51,14 +54,14 @@ export default function TodoPage() {
                 });
             }
             handleClose();
-            fetchTodosByUser(tripId);
+            fetchTodosByUser(tripId, userId);
         } catch (error) { alert(error.message); }
     };
 
     const handleDelete = async (id) => {
         if (window.confirm("Delete this task?")) {
             await deleteTodo(id);
-            fetchTodosByUser(tripId);
+            fetchTodosByUser(tripId, userId);
         }
     };
 
