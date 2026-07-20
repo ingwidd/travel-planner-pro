@@ -31,21 +31,30 @@ export default function CurrencyConverter() {
   const debounceRef = useRef(null);
 
   const fetchRate = useCallback(async (amt, fromCode, toCode) => {
+    // FIX: Set result to 0 immediately if amount is 0 or empty
+    if (!amt || Number(amt) === 0) {
+      setResult(0);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     if (fromCode === toCode) {
-      setResult(Number(amt) || 0);
+      setResult(Number(amt));
       setRate(1);
       setError(null);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
-      const safeAmount = Number(amt) > 0 ? Number(amt) : 1;
       const fromLower = fromCode.toLowerCase();
       const toLower = toCode.toLowerCase();
+      
       const res = await fetch(
-        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@2025.8.12/v1/currencies/${fromLower}.json`
+        `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${fromLower}.json`
       );
 
       if (!res.ok) throw new Error("Request failed");
@@ -55,12 +64,12 @@ export default function CurrencyConverter() {
 
       if (unitRate === undefined) throw new Error("Currency not found");
 
-      setResult(unitRate * safeAmount);
+      setResult(unitRate * Number(amt));
       setRate(unitRate);
       setDate(data.date);
     } catch (error) {
-      setError("Could not fetch live rates. Check your connection and try again.");
-      console.log(error);
+      setError("Could not fetch live rates. Check your connection.");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -99,21 +108,22 @@ export default function CurrencyConverter() {
 
   const handleAmountChange = (e) => {
     const val = e.target.value;
+    // Allows numbers and a single decimal point
     if (/^\d*\.?\d*$/.test(val)) setAmount(val);
   };
 
   const formattedResult =
-    result != null
+    result !== null
       ? new Intl.NumberFormat("en-US", {
-          maximumFractionDigits: result < 10 ? 4 : 2,
+          maximumFractionDigits: result < 10 && result !== 0 ? 4 : 2,
         }).format(result)
       : "";
 
   return (
-    <div className="card border-primary h-100 p-4">
+    <div className="card border-primary h-100 p-4 shadow-sm">
       <h4 className="text-center text-primary mb-4">Currency Converter</h4>
 
-      {/* Amount row */}
+      {/* Amount Input */}
       <div className="d-flex justify-content-between align-items-center border-bottom border-primary pb-2 mb-2">
         <input
           type="text"
@@ -121,70 +131,70 @@ export default function CurrencyConverter() {
           value={amount}
           onChange={handleAmountChange}
           placeholder="0"
-          className="form-control form-control-plaintext fs-3 text-primary"
+          className="form-control form-control-plaintext fs-3 text-primary fw-bold"
         />
         <select
-          id="cc-from"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           className="form-select form-select-sm border-primary text-primary w-auto"
         >
           {CURRENCIES.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.code} — {c.name}
+              {c.code}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Result row */}
+      {/* Result Output */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <input
           type="text"
-          value={loading ? "…" : formattedResult}
+          value={loading ? "..." : formattedResult}
           readOnly
           placeholder="0"
-          className="form-control form-control-plaintext fs-3 text-primary"
+          className="form-control form-control-plaintext fs-3 text-primary fw-bold"
         />
         <select
-          id="cc-to"
           value={to}
           onChange={(e) => setTo(e.target.value)}
           className="form-select form-select-sm border-primary text-primary w-auto"
         >
           {CURRENCIES.map((c) => (
             <option key={c.code} value={c.code}>
-              {c.code} — {c.name}
+              {c.code}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Actions */}
-      <div className="d-flex justify-content-center gap-2 mb-3">
-        <button type="button" onClick={handleConvert} className="btn btn-outline-primary">
+      {/* Action Buttons */}
+      <div className="d-grid gap-2 d-md-flex justify-content-center mb-3">
+        <button type="button" onClick={handleConvert} className="btn btn-primary px-4">
           Convert
         </button>
         <button
           type="button"
           onClick={handleSwap}
           className="btn btn-outline-primary"
-          aria-label="Swap currencies"
+          title="Swap currencies"
         >
           ⇄
         </button>
-        <button type="button" onClick={handleReset} className="btn btn-outline-primary">
+        <button type="button" onClick={handleReset} className="btn btn-outline-secondary">
           Reset
         </button>
       </div>
 
-      {/* Status / metadata */}
+      {/* Live Rate Information */}
       {error && <p className="text-danger small text-center mb-1">{error}</p>}
       {rate !== null && !loading && !error && (
-        <p className="text-muted small text-center mb-0">
-          1 {from} = {new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(rate)} {to}
-          {date && ` (updated ${date})`}
-        </p>
+        <div className="text-center">
+          <p className="text-muted small mb-0">
+            1 {from} = {new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(rate)} {to}
+          </p>
+          {date && <p className="text-muted mb-0" style={{ fontSize: '0.7rem' }}>Rates updated: {date}</p>}
+        </div>
       )}
     </div>
   );
