@@ -25,8 +25,19 @@ export default function DiaryPage() {
         }
     }, [tripId, userId]);
 
-    const handleClose = () => setShowModal(null);
-    const handleAdd = () => setShowModal('Add');
+    const handleClose = () => {
+        setShowModal(null);
+        setCaption('');
+        setFile(null);
+        setEditingEntry(null);
+    };
+
+    const handleAdd = () => {
+        setCaption('');
+        setFile(null);
+        setEditingEntry(null);
+        setShowModal('Add');
+    };
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -126,7 +137,7 @@ export default function DiaryPage() {
                             <Form.Control as="textarea" rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add a caption..." required />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Control type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required={showModal === 'Add'} />
+                            <Form.Control key={showModal} type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required={showModal === 'Add'} />
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>
