@@ -12,10 +12,11 @@ export default function DiaryPage() {
     const userId = currentUser?.uid;
 
     const [showModal, setShowModal] = useState(null);
+    const [editingEntry, setEditingEntry] = useState(null);
     const [caption, setCaption] = useState('');
     const [file, setFile] = useState(null);
 
-    const { diaryEntries, fetchDiaryEntriesByUser, saveDiaryEntry } = useTripData();
+    const { diaryEntries, fetchDiaryEntriesByUser, saveDiaryEntry, updateDiaryEntry, deleteDiaryEntry, uploadFile } = useTripData();
 
     // 1. Fetch the data when the component loads
     useEffect(() => {
@@ -30,15 +31,37 @@ export default function DiaryPage() {
     const handleSave = async (e) => {
         e.preventDefault();
         try {
-            // Pass as an object to match the Context definition
-            await saveDiaryEntry({ tripId, caption, file });
+            if (showModal === 'Edit') {
+                // All the upload logic now happens inside the context!
+                await updateDiaryEntry({
+                    entryId: editingEntry.id,
+                    caption: caption,
+                    file: file,
+                    existingPhotoUrl: editingEntry.photo_url
+                });
+            } else {
+                await saveDiaryEntry({ tripId, caption, file });
+            }
+
             handleClose();
-            setCaption('');
-            setFile(null);
-            // Refresh the list after saving
-            fetchDiaryEntriesByUser(tripId);
+            fetchDiaryEntriesByUser(tripId, userId);
         } catch (error) {
             alert(error.message);
+        }
+    };
+
+    const handleShowEdit = (entry) => {
+        setEditingEntry(entry);
+        setCaption(entry.caption);
+        setShowModal('Edit');
+    };
+
+    const handleDelete = async (entryId) => {
+        if (window.confirm("Are you sure you want to delete this memory?")) {
+            try {
+                await deleteDiaryEntry(entryId);
+                fetchDiaryEntriesByUser(tripId, userId);
+            } catch (error) { alert(error.message); }
         }
     };
 
@@ -68,8 +91,8 @@ export default function DiaryPage() {
                                         {new Date(entry.date_created).toLocaleDateString()}
                                     </small>
                                     <div>
-                                        <Button variant="link" size="sm" className="p-0 me-2 text-primary">Edit</Button>
-                                        <Button variant="link" size="sm" className="p-0 text-danger">
+                                        <Button variant="link" size="sm" className="p-0 me-2 text-primary" onClick={() => handleShowEdit(entry)}>Edit</Button>
+                                        <Button variant="link" size="sm" className="p-0 text-danger" onClick={() => handleDelete(entry.id)}>
                                             <i className="bi bi-trash"></i>
                                         </Button>
                                     </div>
@@ -95,17 +118,21 @@ export default function DiaryPage() {
 
             <Modal show={showModal !== null} onHide={handleClose} centered>
                 <Form onSubmit={handleSave}>
-                    <Modal.Header closeButton><Modal.Title>Add Diary Entry</Modal.Title></Modal.Header>
+                    <Modal.Header closeButton>
+                        <Modal.Title>{showModal === 'Edit' ? 'Edit Entry' : 'Add Diary Entry'}</Modal.Title>
+                    </Modal.Header>
                     <Modal.Body>
                         <Form.Group className="mb-3">
                             <Form.Control as="textarea" rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add a caption..." required />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Control type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required />
+                            <Form.Control type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} required={showModal === 'Add'} />
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="primary" type="submit">Save Entry</Button>
+                        <Button variant="primary" type="submit">
+                            {showModal === 'Edit' ? 'Update' : 'Save'}
+                        </Button>
                     </Modal.Footer>
                 </Form>
             </Modal>

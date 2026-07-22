@@ -115,22 +115,42 @@ export function TripDataProvider({ children }) {
         return createDiaryEntry({ tripId, caption, photoUrl });
     }
 
-    async function updateDiaryEntry(entryId, entry) {
-        const response = await fetch(`/diary-entries/${entryId}`, {
+    async function updateDiaryEntry({ entryId, caption, file, existingPhotoUrl }) {
+        let photoUrl = existingPhotoUrl;
+
+        // If a new file is provided, upload it and get the new URL
+        if (file) {
+            photoUrl = await uploadFile(file);
+        }
+
+        const response = await fetch(`${BASE_URL}/diary-entries/${entryId}`, { // Added BASE_URL
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry), // { caption, photoUrl }
+            body: JSON.stringify({ caption, photoUrl }),
         });
+
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to update diary entry");
         return result.data;
     }
 
     async function deleteDiaryEntry(entryId) {
-        const response = await fetch(`/diary-entries/${entryId}`, { method: "DELETE" });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to delete diary entry");
-        return result;
+        try {
+            const response = await fetch(`${BASE_URL}/diary-entries/${entryId}`, {
+                method: "DELETE"
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to delete diary entry");
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Delete Diary Entry Error:", error.message);
+            throw error; // Re-throw so the UI can show an alert
+        }
     }
 
     const fetchTodosByUser = async (tripId, userId) => {
