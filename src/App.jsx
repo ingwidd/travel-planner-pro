@@ -19,7 +19,7 @@ export default function App() {
             <Route path="/todo" element={<Layout><TodoPage /></Layout>} />
             <Route path="/diary" element={<Layout><DiaryPage /></Layout>} />
             <Route path="/login" element={<AuthPage />} />
-            <Route path="/" element={<Layout><HomePage /></Layout>} />
+            <Route path="/" element={<AuthPage />} />
             <Route path="*" element={<AuthPage />} />
           </Routes>
         </BrowserRouter>
