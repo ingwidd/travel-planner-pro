@@ -10,9 +10,9 @@ import TripsPage from "./pages/TripPage";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <TripDataProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TripDataProvider>
           <Routes>
             <Route path="/home" element={<Layout><HomePage /></Layout>} />
             <Route path="/trips" element={<Layout><TripsPage /></Layout>} />
@@ -22,8 +22,8 @@ export default function App() {
             <Route path="/" element={<AuthPage />} />
             <Route path="*" element={<AuthPage />} />
           </Routes>
-        </BrowserRouter>
-      </TripDataProvider>
-    </AuthProvider>
+        </TripDataProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

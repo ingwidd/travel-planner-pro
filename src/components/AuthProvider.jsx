@@ -1,13 +1,23 @@
 import { createContext, useEffect, useState } from "react";
 import { auth } from '../firebase';
+import { useLocalStorage } from "usehooks-ts";
+import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
+    const [authToken, setAuthToken] = useLocalStorage('authToken', '');
     const [loading, setLoading] = useState(true);
 
+    const navigate = useNavigate();
+
     useEffect(() => {
+        console.log(authToken !== '');
+        if (authToken == '') {
+            navigate('/login');
+        }
+
         return auth.onAuthStateChanged(async (user) => {
             if (user) {
                 try {
@@ -30,7 +40,7 @@ export function AuthProvider({ children }) {
             setCurrentUser(user);
             setLoading(false);
         });
-    }, []);
+    }, [authToken, navigate]);
 
     const value = { currentUser };
 
