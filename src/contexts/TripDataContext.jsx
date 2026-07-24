@@ -13,7 +13,7 @@ export function TripDataProvider({ children }) {
     const [entriesLoading, setEntriesLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const BASE_URL = "http://localhost:3000";
+    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     const uploadFile = useCallback(async (file) => {
         const storageRef = ref(storage, `diaryEntries/${file.name}`);
@@ -190,7 +190,7 @@ export function TripDataProvider({ children }) {
     }
 
     async function updateTodo(todoId, todo) {
-        const response = await fetch(`/todos/${todoId}`, {
+        const response = await fetch(`${BASE_URL}/todos/${todoId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(todo), // { taskDescription, isCompleted }
@@ -201,7 +201,7 @@ export function TripDataProvider({ children }) {
     }
 
     async function deleteTodo(todoId) {
-        const response = await fetch(`/todos/${todoId}`, { method: "DELETE" });
+        const response = await fetch(`${BASE_URL}/todos/${todoId}`, { method: "DELETE" });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to delete todo");
         return result;
