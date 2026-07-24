@@ -12,6 +12,8 @@ export function AuthProvider({ children }) {
 
     const navigate = useNavigate();
 
+    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
     useEffect(() => {
         console.log(authToken !== '');
         if (authToken == '') {
@@ -21,7 +23,7 @@ export function AuthProvider({ children }) {
         return auth.onAuthStateChanged(async (user) => {
             if (user) {
                 try {
-                    const response = await fetch('http://localhost:3000/sync-user', {
+                    const response = await fetch(`${BASE_URL}/sync-user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
