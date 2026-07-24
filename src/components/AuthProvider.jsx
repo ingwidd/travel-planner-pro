@@ -42,11 +42,11 @@ export function AuthProvider({ children }) {
         return () => unsubscribe();
     }, [setAuthToken, BASE_URL]);
 
-    const value = { currentUser, authToken };
+    const value = { currentUser, authToken, loading };
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 }
