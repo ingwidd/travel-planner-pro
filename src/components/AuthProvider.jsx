@@ -1,7 +1,7 @@
+// AuthProvider.jsx
 import { createContext, useEffect, useState } from "react";
 import { auth } from '../firebase';
 import { useLocalStorage } from "usehooks-ts";
-import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext();
 
@@ -10,20 +10,16 @@ export function AuthProvider({ children }) {
     const [authToken, setAuthToken] = useLocalStorage('authToken', '');
     const [loading, setLoading] = useState(true);
 
-    const navigate = useNavigate();
-
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     useEffect(() => {
-        console.log(authToken !== '');
-        if (authToken == '') {
-            navigate('/login');
-        }
-
-        return auth.onAuthStateChanged(async (user) => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
+                const token = await user.getIdToken();
+                setAuthToken(token);
+                
                 try {
-                    const response = await fetch(`${BASE_URL}/sync-user`, {
+                    await fetch(`${BASE_URL}/sync-user`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -31,20 +27,22 @@ export function AuthProvider({ children }) {
                             email: user.email,
                         })
                     });
-
-                    if (!response.ok) throw new Error("Backend sync failed");
-
                     console.log("User successfully synced to Postgres");
                 } catch (err) {
                     console.error("Sync error:", err);
                 }
+            } else {
+                setAuthToken('');
             }
+            
             setCurrentUser(user);
             setLoading(false);
         });
-    }, [authToken, navigate]);
 
-    const value = { currentUser };
+        return () => unsubscribe();
+    }, [setAuthToken, BASE_URL]);
+
+    const value = { currentUser, authToken };
 
     return (
         <AuthContext.Provider value={value}>
