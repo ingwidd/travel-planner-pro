@@ -61,4 +61,24 @@ describe('AuthPage Component', () => {
             expect(firebaseAuth.signInWithEmailAndPassword).toHaveBeenCalled();
         });
     });
+
+    it('shows the reason when sign up fails', async () => {
+        firebaseAuth.createUserWithEmailAndPassword.mockRejectedValue({
+            code: 'auth/email-already-in-use',
+            message: 'Firebase error',
+        });
+
+        renderAuthPage();
+
+        fireEvent.click(screen.getByRole('button', { name: /Sign Up/i }));
+        fireEvent.change(screen.getByPlaceholderText(/Enter email/i), { target: { value: 'user@test.com' } });
+        fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'password123' } });
+        fireEvent.click(screen.getByRole('button', { name: /^Sign up$/i }));
+
+        await waitFor(() => {
+            expect(window.alert).toHaveBeenCalledWith(
+                'Sign up failed: This email is already registered. Try logging in instead.'
+            );
+        });
+    });
 });

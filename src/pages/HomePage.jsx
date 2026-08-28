@@ -12,7 +12,7 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const BASE_URL = "http://localhost:3000";
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();

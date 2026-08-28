@@ -9,6 +9,17 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../components/AuthProvider';
 import beachPicnic from '../assets/beach-picnic.png';
 
+function getSignUpErrorMessage(error) {
+    const messages = {
+        'auth/email-already-in-use': 'This email is already registered. Try logging in instead.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/weak-password': 'Your password is too weak. Use at least 6 characters.',
+        'auth/operation-not-allowed': 'Email and password sign-up is not enabled.',
+    };
+
+    return messages[error.code] || error.message || 'Please check your details and try again.';
+}
+
 export default function AuthPage() {
     const [modalShow, setModalShow] = useState(null);
     const handleShowSignUp = () => setModalShow('Signup');
@@ -30,7 +41,7 @@ export default function AuthPage() {
             alert("Sign up successful! You are now logged in.");
             console.log(res.user);
         } catch (error) {
-            alert("Sign up failed.")
+            alert(`Sign up failed: ${getSignUpErrorMessage(error)}`);
             console.error(error);
         }
     };
