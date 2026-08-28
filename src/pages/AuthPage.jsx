@@ -73,7 +73,7 @@ export default function AuthPage() {
                     />
                 </Col>
                 <Col md={5} className="p-4 p-lg-5 d-flex flex-column justify-content-center">
-                    <h2 className="fw-bold mb-3">Travel Planner Pro</h2>
+                    <h2 className="fw-bold mb-3">Travelite Pro</h2>
                     <p className="text-muted mb-4">
                         Keep your itinerary, to-dos, and diary in one place.
                     </p>

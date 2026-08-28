@@ -20,7 +20,7 @@ export default function Layout({ children }) {
         <Container>
           <Navbar.Brand as={Link} to="/home" className="fw-bold">
             <i className="bi bi-luggage-fill"></i>
-            Travel Planner
+            Travelite Pro
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
