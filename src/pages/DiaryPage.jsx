@@ -16,7 +16,7 @@ export default function DiaryPage() {
     const [caption, setCaption] = useState('');
     const [file, setFile] = useState(null);
 
-    const { diaryEntries, fetchDiaryEntriesByUser, saveDiaryEntry, updateDiaryEntry, deleteDiaryEntry, uploadFile } = useTripData();
+    const { diaryEntries, fetchDiaryEntriesByUser, saveDiaryEntry, updateDiaryEntry, deleteDiaryEntry } = useTripData();
 
     // 1. Fetch the data when the component loads
     useEffect(() => {

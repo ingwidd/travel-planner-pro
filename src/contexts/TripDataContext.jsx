@@ -1,5 +1,5 @@
 import { useState, useContext, createContext, useCallback } from 'react';
-import { storage } from '../firebase';
+import { auth, storage } from '../firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 const TripDataContext = createContext(null);
@@ -16,7 +16,12 @@ export function TripDataProvider({ children }) {
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     const uploadFile = useCallback(async (file) => {
-        const storageRef = ref(storage, `diaryEntries/${file.name}`);
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error("You must be signed in to upload a diary photo");
+        }
+
+        const storageRef = ref(storage, `diaryEntries/${user.uid}/${crypto.randomUUID()}`);
         const response = await uploadBytes(storageRef, file);
         const url = await getDownloadURL(response.ref);
         return url;

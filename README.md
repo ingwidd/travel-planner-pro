@@ -2,6 +2,18 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Firebase Storage
+
+Diary photos are stored under `diaryEntries/<user-id>/` and Storage rules allow
+only the authenticated owner to access them. Deploy the rules to the Firebase
+project configured by `VITE_PROJECT_ID` before uploading photos:
+
+```sh
+firebase deploy --only storage --project <your-firebase-project-id>
+```
+
+Uploads are restricted to image files up to 10 MB.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
