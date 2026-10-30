@@ -2,17 +2,39 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Firebase Storage
+## Private diary image storage
 
-Diary photos are stored under `diaryEntries/<user-id>/` and Storage rules allow
-only the authenticated owner to access them. Deploy the rules to the Firebase
-project configured by `VITE_PROJECT_ID` before uploading photos:
+Diary images are stored in a **private Supabase Storage bucket**. The browser
+sends a signed-in Firebase ID token to the API for a one-use upload token, then
+uploads directly to Supabase. The API checks trip ownership, stores the object
+path in the diary row, and returns short-lived signed image URLs. This keeps
+large image files out of the API request body. Never put the Supabase
+service-role key in this frontend project or in a `VITE_` variable.
 
-```sh
-firebase deploy --only storage --project <your-firebase-project-id>
-```
+1. Create a private Supabase bucket named `diary-images` (or set
+   `SUPABASE_DIARY_BUCKET` to a different name). Set its file size limit to
+   10 MB and its allowed MIME types to `image/avif`, `image/gif`, `image/jpeg`,
+   `image/png`, and `image/webp`. Browser clients should not have bucket
+   policies granting direct access; the API uses the service-role key.
+2. Configure these variables on the API server:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_DIARY_BUCKET` (optional; defaults to `diary-images`)
+   - `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin service-account JSON)
+3. Configure these frontend variables:
+   - `VITE_SUPABASE_URL` (the same Supabase project URL)
+   - `VITE_SUPABASE_ANON_KEY` (the project's public anon/publishable key)
+   - `VITE_SUPABASE_DIARY_BUCKET` (optional; defaults to `diary-images`)
+   - `VITE_API_URL` (the API deployment URL)
+4. Install and deploy the API repository after adding its server-only
+   variables. The bucket name must match in both projects.
 
-Uploads are restricted to image files up to 10 MB.
+The frontend rejects images over 10 MB, and the API allowlists image MIME types
+before issuing an upload token. Configure the bucket itself to enforce the
+10 MB maximum and allowed MIME types. New images are stored as user-owned
+object paths; database rows keep those paths, not signed URLs. Previously saved
+Firebase image URLs continue to display, but are not automatically migrated
+to Supabase.
 
 Currently, two official plugins are available:
 

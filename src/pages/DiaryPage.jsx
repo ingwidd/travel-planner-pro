@@ -21,7 +21,7 @@ export default function DiaryPage() {
     // 1. Fetch the data when the component loads
     useEffect(() => {
         if (userId) {
-            fetchDiaryEntriesByUser(tripId, userId);
+            fetchDiaryEntriesByUser(tripId);
         }
     }, [tripId, userId]);
 
@@ -46,16 +46,16 @@ export default function DiaryPage() {
                 // All the upload logic now happens inside the context!
                 await updateDiaryEntry({
                     entryId: editingEntry.id,
+                    tripId: editingEntry.trip_id,
                     caption: caption,
-                    file: file,
-                    existingPhotoUrl: editingEntry.photo_url
+                    file: file
                 });
             } else {
                 await saveDiaryEntry({ tripId, caption, file });
             }
 
             handleClose();
-            fetchDiaryEntriesByUser(tripId, userId);
+            fetchDiaryEntriesByUser(tripId);
         } catch (error) {
             alert(error.message);
         }
@@ -70,8 +70,9 @@ export default function DiaryPage() {
     const handleDelete = async (entryId) => {
         if (window.confirm("Are you sure you want to delete this memory?")) {
             try {
-                await deleteDiaryEntry(entryId);
-                fetchDiaryEntriesByUser(tripId, userId);
+                const result = await deleteDiaryEntry(entryId);
+                if (result.warning) alert(result.warning);
+                fetchDiaryEntriesByUser(tripId);
             } catch (error) { alert(error.message); }
         }
     };

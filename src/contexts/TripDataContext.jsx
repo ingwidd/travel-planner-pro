@@ -1,6 +1,6 @@
-import { useState, useContext, createContext, useCallback } from 'react';
-import { auth, storage } from '../firebase';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { useState, useContext, createContext } from 'react';
+import { auth } from '../firebase';
+import { getDiaryImageBucket } from '../supabase';
 
 const TripDataContext = createContext(null);
 
@@ -15,17 +15,44 @@ export function TripDataProvider({ children }) {
 
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-    const uploadFile = useCallback(async (file) => {
+    async function getDiaryAuthHeaders() {
         const user = auth.currentUser;
         if (!user) {
-            throw new Error("You must be signed in to upload a diary photo");
+            throw new Error("You must be signed in to manage diary entries");
+        }
+        return { Authorization: `Bearer ${await user.getIdToken()}` };
+    }
+
+    function validateDiaryImage(file) {
+        if (!file.type.startsWith("image/")) {
+            throw new Error("Choose an image file to upload");
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            throw new Error("Diary photos must be 10 MB or smaller");
+        }
+    }
+
+    async function uploadDiaryImage(tripId, file) {
+        validateDiaryImage(file);
+        const headers = await getDiaryAuthHeaders();
+        const authorizationResponse = await fetch(`${BASE_URL}/diary-image-uploads`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ tripId, contentType: file.type }),
+        });
+        const authorizationResult = await authorizationResponse.json();
+        if (!authorizationResponse.ok) {
+            throw new Error(authorizationResult.error || "Failed to prepare diary photo upload");
         }
 
-        const storageRef = ref(storage, `diaryEntries/${user.uid}/${crypto.randomUUID()}`);
-        const response = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(response.ref);
-        return url;
-    }, []);
+        const { path, token } = authorizationResult.data;
+        const { error } = await getDiaryImageBucket().uploadToSignedUrl(path, token, file, {
+            contentType: file.type,
+            upsert: false,
+        });
+        if (error) throw new Error(error.message);
+        return path;
+    }
 
     async function fetchTrips(userId) {
         try {
@@ -73,16 +100,15 @@ export function TripDataProvider({ children }) {
 
     // TripDataContext.jsx
 
-    const fetchDiaryEntriesByUser = async (tripId, userId) => {
+    const fetchDiaryEntriesByUser = async (tripId) => {
         try {
             setEntriesLoading(true);
 
-            // Build URL parameters cleanly
             const params = new URLSearchParams();
             if (tripId && tripId !== 'null') params.append('tripId', tripId);
-            if (userId) params.append('userId', userId);
-
-            const response = await fetch(`${BASE_URL}/diary-entries?${params.toString()}`);
+            const response = await fetch(`${BASE_URL}/diary-entries?${params.toString()}`, {
+                headers: await getDiaryAuthHeaders(),
+            });
             const result = await response.json();
 
             if (!response.ok) {
@@ -98,40 +124,27 @@ export function TripDataProvider({ children }) {
         }
     };
 
-    async function createDiaryEntry(entry) {
+    async function saveDiaryEntry({ tripId, caption, file }) {
+        if (!file) throw new Error("A photo is required to create a diary entry");
+        const photoPath = await uploadDiaryImage(tripId, file);
+
         const response = await fetch(`${BASE_URL}/diary-entries`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entry), // { tripId, caption, photoUrl }
+            headers: { ...(await getDiaryAuthHeaders()), "Content-Type": "application/json" },
+            body: JSON.stringify({ tripId, caption, photoPath }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Failed to create diary entry");
         return result.data;
     }
 
-    async function saveDiaryEntry({ tripId, caption, file }) {
-        let photoUrl = null;
-        if (file) {
-            photoUrl = await uploadFile(file);
-        }
+    async function updateDiaryEntry({ entryId, tripId, caption, file }) {
+        const photoPath = file ? await uploadDiaryImage(tripId, file) : undefined;
 
-        if (!photoUrl) throw new Error("A photo is required to create a diary entry");
-
-        return createDiaryEntry({ tripId, caption, photoUrl });
-    }
-
-    async function updateDiaryEntry({ entryId, caption, file, existingPhotoUrl }) {
-        let photoUrl = existingPhotoUrl;
-
-        // If a new file is provided, upload it and get the new URL
-        if (file) {
-            photoUrl = await uploadFile(file);
-        }
-
-        const response = await fetch(`${BASE_URL}/diary-entries/${entryId}`, { // Added BASE_URL
+        const response = await fetch(`${BASE_URL}/diary-entries/${entryId}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ caption, photoUrl }),
+            headers: { ...(await getDiaryAuthHeaders()), "Content-Type": "application/json" },
+            body: JSON.stringify({ caption, photoPath }),
         });
 
         const result = await response.json();
@@ -142,7 +155,8 @@ export function TripDataProvider({ children }) {
     async function deleteDiaryEntry(entryId) {
         try {
             const response = await fetch(`${BASE_URL}/diary-entries/${entryId}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: await getDiaryAuthHeaders(),
             });
 
             const result = await response.json();
