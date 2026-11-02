@@ -4,6 +4,24 @@ import { getDiaryImageBucket } from '../supabase';
 
 const TripDataContext = createContext(null);
 
+async function readApiResponse(response, fallbackMessage) {
+    const body = await response.text();
+    let result;
+
+    try {
+        result = body ? JSON.parse(body) : {};
+    } catch {
+        throw new Error(
+            `${fallbackMessage} (HTTP ${response.status}). The API returned a non-JSON response; check that VITE_API_URL points to the deployed API and that its latest version is deployed.`
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(result.error || `${fallbackMessage} (HTTP ${response.status})`);
+    }
+    return result;
+}
+
 export function TripDataProvider({ children }) {
     const [trips, setTrips] = useState([]);
     const [todos, setTodos] = useState([]);
@@ -40,10 +58,10 @@ export function TripDataProvider({ children }) {
             headers: { ...headers, "Content-Type": "application/json" },
             body: JSON.stringify({ tripId, contentType: file.type }),
         });
-        const authorizationResult = await authorizationResponse.json();
-        if (!authorizationResponse.ok) {
-            throw new Error(authorizationResult.error || "Failed to prepare diary photo upload");
-        }
+        const authorizationResult = await readApiResponse(
+            authorizationResponse,
+            "Failed to prepare diary photo upload"
+        );
 
         const { path, token } = authorizationResult.data;
         const { error } = await getDiaryImageBucket().uploadToSignedUrl(path, token, file, {
@@ -109,11 +127,7 @@ export function TripDataProvider({ children }) {
             const response = await fetch(`${BASE_URL}/diary-entries?${params.toString()}`, {
                 headers: await getDiaryAuthHeaders(),
             });
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Error fetching diary entries");
-            }
+            const result = await readApiResponse(response, "Error fetching diary entries");
 
             setDiaryEntries(result.data || []);
         } catch (error) {
@@ -133,8 +147,7 @@ export function TripDataProvider({ children }) {
             headers: { ...(await getDiaryAuthHeaders()), "Content-Type": "application/json" },
             body: JSON.stringify({ tripId, caption, photoPath }),
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to create diary entry");
+        const result = await readApiResponse(response, "Failed to create diary entry");
         return result.data;
     }
 
@@ -147,8 +160,7 @@ export function TripDataProvider({ children }) {
             body: JSON.stringify({ caption, photoPath }),
         });
 
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Failed to update diary entry");
+        const result = await readApiResponse(response, "Failed to update diary entry");
         return result.data;
     }
 
@@ -159,11 +171,7 @@ export function TripDataProvider({ children }) {
                 headers: await getDiaryAuthHeaders(),
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Failed to delete diary entry");
-            }
+            const result = await readApiResponse(response, "Failed to delete diary entry");
 
             return result;
         } catch (error) {
