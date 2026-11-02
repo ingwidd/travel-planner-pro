@@ -1,4 +1,9 @@
 // AuthProvider.jsx
+import {
+    browserSessionPersistence,
+    onAuthStateChanged,
+    setPersistence,
+} from "firebase/auth";
 import { createContext, useEffect, useState } from "react";
 import { auth } from '../firebase';
 import { useLocalStorage } from "usehooks-ts";
@@ -13,33 +18,53 @@ export function AuthProvider({ children }) {
     const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                const token = await user.getIdToken();
-                setAuthToken(token);
-                
-                try {
-                    await fetch(`${BASE_URL}/sync-user`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            uid: user.uid,
-                            email: user.email,
-                        })
-                    });
-                    console.log("User successfully synced to Postgres");
-                } catch (err) {
-                    console.error("Sync error:", err);
-                }
-            } else {
-                setAuthToken('');
-            }
-            
-            setCurrentUser(user);
-            setLoading(false);
-        });
+        let isActive = true;
+        let unsubscribe;
 
-        return () => unsubscribe();
+        setPersistence(auth, browserSessionPersistence)
+            .then(() => {
+                if (!isActive) return;
+
+                unsubscribe = onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        const token = await user.getIdToken();
+                        setAuthToken(token);
+
+                        try {
+                            const response = await fetch(`${BASE_URL}/sync-user`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    uid: user.uid,
+                                    email: user.email,
+                                })
+                            });
+                            if (!response.ok) {
+                                throw new Error(`User sync failed with HTTP ${response.status}`);
+                            }
+                            console.log("User successfully synced to Postgres");
+                        } catch (err) {
+                            console.error("Sync error:", err);
+                        }
+                    } else {
+                        setAuthToken('');
+                    }
+
+                    setCurrentUser(user);
+                    setLoading(false);
+                });
+            })
+            .catch((error) => {
+                console.error("Firebase session persistence setup failed:", error);
+                if (isActive) setLoading(false);
+            });
+
+        return () => {
+            isActive = false;
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, [setAuthToken, BASE_URL]);
 
     const value = { currentUser, authToken, loading };

@@ -8,7 +8,9 @@ import '@testing-library/jest-dom';
 
 // Mock Firebase Auth
 vi.mock('firebase/auth', () => ({
+    browserSessionPersistence: {},
     getAuth: vi.fn(),
+    setPersistence: vi.fn().mockResolvedValue(undefined),
     createUserWithEmailAndPassword: vi.fn(),
     signInWithEmailAndPassword: vi.fn(),
 }));

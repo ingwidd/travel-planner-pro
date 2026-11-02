@@ -1,6 +1,8 @@
 import {
+    browserSessionPersistence,
     createUserWithEmailAndPassword,
     getAuth,
+    setPersistence,
     signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { Button, Col, Container, Form, Image, Modal, Row } from 'react-bootstrap';
@@ -37,6 +39,7 @@ export default function AuthPage() {
     const handleSignUp = async (e) => {
         e.preventDefault();
         try {
+            await setPersistence(auth, browserSessionPersistence);
             const res = await createUserWithEmailAndPassword(auth, email, password);
             alert("Sign up successful! You are now logged in.");
             console.log(res.user);
@@ -49,6 +52,7 @@ export default function AuthPage() {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
+            await setPersistence(auth, browserSessionPersistence);
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
             alert("Login failed: Check your email and password.");
