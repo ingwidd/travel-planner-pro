@@ -17,12 +17,12 @@ service-role key in this frontend project or in a `VITE_` variable.
    `image/png`, and `image/webp`. Browser clients should not have bucket
    policies granting direct access; the API uses the service-role key.
 2. Configure these variables on the API server:
-   - `SUPABASE_URL`
+   - `SUPABASE_URL` (the project root URL, e.g. `https://<project-ref>.supabase.co`; do not append `/rest/v1`)
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_DIARY_BUCKET` (optional; defaults to `diary-images`)
    - `FIREBASE_SERVICE_ACCOUNT` (the Firebase Admin service-account JSON)
 3. Configure these frontend variables:
-   - `VITE_SUPABASE_URL` (the same Supabase project URL)
+   - `VITE_SUPABASE_URL` (the same project root URL; do not append `/rest/v1`)
    - `VITE_SUPABASE_ANON_KEY` (the project's public anon/publishable key)
    - `VITE_SUPABASE_DIARY_BUCKET` (optional; defaults to `diary-images`)
    - `VITE_API_URL` (the API deployment URL)

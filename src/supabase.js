@@ -10,6 +10,10 @@ export function getDiaryImageBucket() {
     }
 
     if (!supabase) {
+        const projectUrl = new URL(url);
+        if (projectUrl.pathname !== "/") {
+            throw new Error("VITE_SUPABASE_URL must be the Supabase Project URL without a path such as /rest/v1");
+        }
         supabase = createClient(url, anonKey);
     }
     return supabase.storage.from(import.meta.env.VITE_SUPABASE_DIARY_BUCKET || "diary-images");
